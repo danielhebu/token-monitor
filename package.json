@@ -1,0 +1,19 @@
+{
+  "name": "token-monitor",
+  "version": "1.0.0",
+  "description": "OpenClaw skill for monitoring LLM API token usage, costs, and account balance",
+  "author": "Dabai-OpenClaw",
+  "license": "MIT",
+  "keywords": [
+    "openclaw",
+    "skill",
+    "token-monitor",
+    "llm",
+    "api",
+    "cost-tracking"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openclaw-community/token-monitor.git"
+  }
+}
