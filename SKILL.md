@@ -1,47 +1,37 @@
 ---
 name: token-monitor
-description: Monitor and track LLM API token usage, costs, and account balance. Automatically calculate daily consumption, predict remaining days based on balance, and warn when balance is insufficient (default: less than 2 days). Use when asked about token statistics, usage costs, balance checking, or setting up usage monitoring for OpenClaw/LLM services.
+description: Monitor and track LLM API token usage, costs, and account balance across multiple platforms (Zhipu, Kimi, OpenAI, etc.). Automatically calculate daily consumption, predict remaining days based on balance, warn when balance is insufficient. Support per-platform top-up total tracking. Use when asked about token statistics, usage costs, balance checking, or setting up usage monitoring for OpenClaw/LLM services.
 ---
 
-# Token Monitor
+# Token Monitor v2.0
 
-A system for monitoring LLM API token usage, calculating costs, and warning when balance is low.
+Multi-platform LLM API token usage monitoring with balance tracking.
 
 ## Quick Start
 
 ### View Today's Usage
 
 ```bash
-node C:\Users\danie\Documents\scripts\token-monitor.js
+node scripts/token-monitor.js
 ```
 
 Output includes:
 - Daily input/output tokens
 - Daily cost (CNY)
 - Cumulative cost
-- Average daily consumption (7-day)
-- Current balance
-- Remaining days
-- Warning if balance < 2 days
+- 7-day average daily consumption
+- **Per-platform account health** (充值总额, 今日消费, 当前余额, 可用天数)
+- Warning if any platform balance < threshold
 
 ### Update Balance
 
 ```bash
-node C:\Users\danie\Documents\scripts\update-balance.js <balance>
-```
+# Update single platform balance
+node scripts/update-balance.js <platform> <balance> [totalTopUp]
 
-Example:
-```bash
-node update-balance.js 79.69
-```
-
-### Check Balance via Browser
-
-Use OpenClaw browser automation to fetch balance from Zhipu AI console:
-
-```javascript
-// Navigate to: https://bigmodel.cn/finance-center/finance/overview
-// Extract balance from page
+# Examples:
+node scripts/update-balance.js zhipu 45.47 200
+node scripts/update-balance.js kimi 87.89 100
 ```
 
 ## Architecture
@@ -49,138 +39,133 @@ Use OpenClaw browser automation to fetch balance from Zhipu AI console:
 ### Files
 
 ```
-C:\Users\danie\Documents\
+token-monitor/
+├── SKILL.md                    # This file
+├── README.md                   # Detailed documentation
+├── package.json
+├── LICENSE
 ├── scripts/
-│   ├── token-monitor.js      # Main monitoring script
-│   └── update-balance.js     # Balance update utility
-└── memory/
-    ├── token-usage.json      # Cumulative usage data
-    ├── zhipu-balance.json    # Balance data
-    └── token-daily/          # Daily log files
-        └── YYYY-MM-DD.json   # Per-day records
+│   ├── token-monitor.js        # Main monitoring script (v2.0 multi-platform)
+│   └── update-balance.js       # Balance update utility (v2.0 multi-platform)
+└── references/
+    ├── development-report.md
+    └── usage-guide.md
+```
+
+### Data Files (in workspace/memory/)
+
+```
+memory/
+├── token-usage.json            # Cumulative token usage data
+├── zhipu-balance.json          # Multi-platform balance data (v2 format)
+└── token-daily/                # Daily log files
+    └── YYYY-MM-DD.json         # Per-day records
 ```
 
 ### Data Structures
 
-**token-usage.json**
+**zhipu-balance.json (v2 format)**
+
 ```json
 {
-  "lastCheck": "2026-04-05",
-  "totalTokensIn": 44540,
-  "totalTokensOut": 893,
-  "totalCost": 0.2185
+  "platforms": {
+    "zhipu": {
+      "balance": 45.47,
+      "totalTopUp": 200.00,
+      "lastUpdate": "2026-04-17T09:08:00.000Z",
+      "todayCost": 0.2062
+    },
+    "kimi": {
+      "balance": 87.89,
+      "totalTopUp": 100.00,
+      "lastUpdate": "2026-04-17T07:30:00.000Z",
+      "todayCost": 0
+    }
+  },
+  "warningThresholdDays": 2
 }
 ```
 
-**zhipu-balance.json**
+**token-usage.json**
+
 ```json
 {
-  "balance": 79.69,
-  "lastUpdate": "2026-04-05T06:44:19.574Z",
-  "warningThresholdDays": 2
+  "lastCheck": "2026-04-17",
+  "totalTokensIn": 167092,
+  "totalTokensOut": 1426,
+  "totalCost": 0.2062
 }
 ```
 
 **token-daily/YYYY-MM-DD.json**
+
 ```json
 {
-  "date": "2026-04-05",
-  "inputTokens": 35117,
-  "outputTokens": 146,
-  "totalTokens": 35263,
-  "costCNY": 0.0356,
-  "cumulativeInput": 44540,
-  "cumulativeOutput": 893
+  "date": "2026-04-17",
+  "inputTokens": 167092,
+  "outputTokens": 1426,
+  "totalTokens": 168518,
+  "costCNY": 0.2062,
+  "cumulativeInput": 167092,
+  "cumulativeOutput": 1426
 }
 ```
 
-## Automated Monitoring
+## Report Format
 
-### Cron Job
+### Token消费日报
 
-A cron job runs daily at midnight (00:00 Asia/Shanghai) to:
-1. Calculate daily token usage
-2. Compute 7-day average consumption
-3. Check balance vs. consumption
-4. Warn if balance < threshold days
-
-View cron job:
-```bash
-openclaw cron list
 ```
+╔══════════════════════════════════════════════╗
+║       📊 Token 消费日报 (2026-04-17)        ║
+╠══════════════════════════════════════════════╣
+║  📥 今日输入 tokens:           167,092       ║
+║  📤 今日输出 tokens:             1,426       ║
+║  🔢 今日总计 tokens:           168,518       ║
+║  💰 今日费用: ¥0.2062                      ║
+╠══════════════════════════════════════════════╣
+║  📈 累计输入:              167,092 tokens     ║
+║  📈 累计输出:                1,426 tokens     ║
+║  💵 累计费用: ¥0.2062                       ║
+╠══════════════════════════════════════════════╣
+║  📉 近7天平均日消耗: ¥0.2062                 ║
+╚══════════════════════════════════════════════╝
 
-### Warning Threshold
-
-Default: Warn when balance can support less than 2 days.
-
-Modify in `zhipu-balance.json`:
-```json
-{
-  "warningThresholdDays": 2
-}
+┌──────────────────────────────────────────────┐
+│     🏦 账户健康度（多平台）                    │
+├──────┬──────────┬──────────┬─────────┬───────┤
+│ 平台 │ 充值总额 │ 今日消费 │ 当前余额│ 可用天│
+├──────┼──────────┼──────────┼─────────┼───────┤
+│ zhipu│ ¥200.00  │ ¥0.2062  │ ¥45.47  │ ~219天│
+│ kimi │ ¥100.00  │ ¥0.0000  │ ¥87.89  │ ~426天│
+└──────┴──────────┴──────────┴─────────┴───────┘
 ```
 
 ## Cost Calculation
 
-### GLM-5 Pricing
+### GLM-5V-Turbo Pricing (default)
 
-- Input: ¥1 per 1M tokens
-- Output: ¥3.2 per 1M tokens
+- Input: ¥1.2 per 1M tokens
+- Output: ¥4 per 1M tokens
 
 ### Formula
 
 ```javascript
-costInput = (inputTokens * 1) / 1000000
-costOutput = (outputTokens * 3.2) / 1000000
+costInput = (inputTokens * 1.2) / 1000000
+costOutput = (outputTokens * 4) / 1000000
 totalCost = costInput + costOutput
 ```
 
-## Integration with OpenClaw
+## Changelog
 
-### Getting Token Stats
+### v2.0 (2026-04-17)
+- ✅ Multi-platform support (Zhipu, Kimi, OpenAI, etc.)
+- ✅ Added 充值总额 (totalTopUp) field per platform
+- ✅ Added 今日消费金额 (todayCost) field per platform
+- ✅ Upgraded report format with account health table
+- ✅ Backward compatible with v1 data format (auto-migration)
+- ✅ Updated `update-balance.js` for multi-platform CLI
 
-```bash
-openclaw status --json
-```
-
-Returns session data including:
-- `sessions.recent[0].inputTokens`
-- `sessions.recent[0].outputTokens`
-- `sessions.recent[0].totalTokens`
-
-### Browser Profile
-
-Login state is saved in `openclaw` browser profile:
-- Location: `C:\Users\danie\.openclaw\browser\openclaw\user-data`
-- Usage: `browser.start(profile="openclaw")`
-
-## Extending for Other Providers
-
-To add support for other LLM providers:
-
-1. **Update pricing**: Modify cost calculation in `token-monitor.js`
-2. **Add balance fetcher**: Create provider-specific balance extraction
-3. **Update config**: Add provider selection in `zhipu-balance.json`
-
-## Troubleshooting
-
-### "Cannot get OpenClaw status"
-
-Ensure OpenClaw gateway is running:
-```bash
-openclaw gateway status
-```
-
-### Balance Not Updating
-
-1. Run `update-balance.js` manually with current balance
-2. Or use browser automation to fetch from provider console
-
-### Cron Job Not Running
-
-Check cron status:
-```bash
-openclaw cron list
-```
-
-Verify job is enabled and check next run time.
+### v1.0 (Initial)
+- Single-platform (Zhipu only)
+- Basic token counting and cost calculation
